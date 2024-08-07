@@ -1,14 +1,18 @@
 # with-html
 
+<!--
 [![PyPI](https://img.shields.io/pypi/v/with_html)](https://pypi.org/project/with_html)
+-->
 
 (Ab)use of context managers to construct HTML. Render the resulting tree using [anywidget](https://anywidget.dev).
 
+<!--
 ## Installation
 
 ```sh
 pip install with_html
 ```
+-->
 
 ## Usage
 
