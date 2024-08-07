@@ -6,6 +6,8 @@
 
 (Ab)use python context managers to construct HTML. Render the resulting tree using [anywidget](https://anywidget.dev).
 
+:warning: This is an experiment
+
 <!--
 ## Installation
 
