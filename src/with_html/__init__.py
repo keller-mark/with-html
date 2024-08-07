@@ -1,4 +1,5 @@
-from collections import deque
+import anywidget
+import traitlets
 
 class Node:
     # The node class is used to form the tree structure.
@@ -18,6 +19,13 @@ class Node:
 
     def __repr__(self):
         return self.indented()
+    
+    def to_dict(self):
+        return {
+            "value": self.value.to_dict() if isinstance(self.value, FunctionComponent) else self.value,
+            "children": [child.to_dict() for child in self.children]
+        }
+    
 
 class FunctionComponent:
     def __init__(self, value, *args, **kwargs):
@@ -43,6 +51,18 @@ class FunctionComponent:
         if self.value_is_func():
             value_str = f"FunctionComponent.{self.value.__name__}"
         return f"<{value_str} {self.props}>{self.text_content}"
+    
+    def to_dict(self):
+        return {
+            "tag": self.value if not self.value_is_func() else None,
+            "text_content": self.text_content,
+            "props": self.props,
+            # TODO: convert style keys to camelCase if present?
+            # TODO: convert class_name to className?
+            # TODO: convert callbacks to anywidget.experimental.invoke command references?
+            # TODO: convert html_for to htmlFor?
+            # TODO: convert aria_ to aria-?
+        }
 
 class NodeContextMeta(type):
     def __getattr__(cls, key):
@@ -57,7 +77,7 @@ class NodeContextMeta(type):
 
 def create_root():
     class NodeContext(metaclass=NodeContextMeta):
-        root = Node("root", None)
+        root = Node(None, None)
         curr_node = root
 
         potential_self_closing = []
@@ -102,3 +122,62 @@ def create_root():
             return self
 
     return NodeContext
+
+class RootWidget(anywidget.AnyWidget):
+    _esm = """
+    import { importWithMap } from 'https://unpkg.com/dynamic-importmap@0.1.0';
+    const importMap = {
+    imports: {
+        "react": "https://esm.sh/react@18.2.0?dev",
+        "react-dom": "https://esm.sh/react-dom@18.2.0?dev",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?dev",
+    },
+    };
+
+    const React = await importWithMap("react", importMap);
+    const { createRoot } = await importWithMap("react-dom/client", importMap);
+
+    const e = React.createElement;
+
+
+    async function render(ctx) {
+        const _html = ctx.model.get("_html");
+        console.log(_html);
+
+        function App(props) {
+            const { node } = props;
+            const { value, children } = node;
+            const hasChildren = Array.isArray(children) && children.length > 0;
+            const hasText = value?.text_content?.length === 1;
+
+
+            if(node) {
+                return e(
+                    value?.tag ?? React.Fragment,
+                    value?.props ?? {},
+                    (hasChildren ? children.map(child => e(App, { node: child })) : (
+                        hasText ? value.text_content[0] : null
+                    ))
+                );
+            }
+            return null;
+        }
+
+        const root = createRoot(ctx.el);
+        root.render(e(App, { node: _html }));
+
+        return () => {
+            // Clean up React and DOM state.
+            root.unmount();
+        };
+    }
+    export default { render };
+    """
+
+    def __init__(self, root):
+        self.root = root
+
+        html_trait = traitlets.Dict(self.root.to_dict()).tag(sync=True)
+
+        self.add_traits(_html=html_trait)
+        super().__init__()

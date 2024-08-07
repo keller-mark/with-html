@@ -19,7 +19,7 @@ def test_tree_creation():
     tree_str = str(h.root)
     
     assert tree_str == """
-root
+None
     <child1 {}>()
         <child1.1 {}>()
         <child1.2 {}>()
@@ -49,7 +49,7 @@ def test_convenience_funcs():
     print(tree_str)
     
     assert tree_str == """
-root
+None
     <div {}>()
         <img {'src': 'test.jpg'}>()
         <p {}>('my paragraph',)
@@ -78,7 +78,7 @@ def test_components():
     print(tree_str)
 
     assert tree_str == """
-root
+None
     <div {}>()
         <img {'src': 'test.jpg'}>()
         <p {}>('my paragraph',)
@@ -86,3 +86,50 @@ root
             <button {}>('submit',)
         <p {}>('another paragraph',)
 """.strip()
+    
+def test_to_dict():
+    h = create_root()
+
+    def my_button(h):
+        h.button("submit")
+
+    with h.div():
+        h.img(src="test.jpg")
+        h.p("my paragraph")
+        h(my_button)
+        h.p("another paragraph")
+    
+    tree_dict = h.root.to_dict()
+    print(tree_dict)
+
+    assert tree_dict == {
+        'value': None,
+        'children': [
+            {
+                'value': {'tag': 'div', 'text_content': (), 'props': {}},
+                'children': [
+                    {
+                        'value': {'tag': 'img', 'text_content': (), 'props': {'src': 'test.jpg'}},
+                        'children': []
+                    },
+                    {
+                        'value': {'tag': 'p', 'text_content': ('my paragraph',), 'props': {}},
+                        'children': []
+                    },
+                    {
+                        'value': {'tag': None, 'text_content': (), 'props': {}},
+                        'children': [
+                            {
+                                'value': {'tag': 'button', 'text_content': ('submit',), 'props': {}},
+                                'children': []
+                            }
+                        ]
+                    },
+                    {
+                        'value': {'tag': 'p', 'text_content': ('another paragraph',), 'props': {}},
+                        'children': []
+                    }
+                ]
+            }
+        ]
+    }
