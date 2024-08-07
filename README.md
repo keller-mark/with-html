@@ -18,12 +18,22 @@ from with_html import create_root, RootWidget
 
 h = create_root()
 
-with h("div", style=dict(margin_top=10)):
-    h("p", "this is a string in a paragraph")()
-    h("span", "contents of the span")
-with h("div"):
-    h("img", src="http://example.com/image.png")()
-print(h.root)
+def my_button(h):
+    h.button("submit")
+
+with h.div():
+    h.h1("Test")
+    h.img(src="https://example.com/my_image.jpg", width=200, height=200)
+    h.p("my paragraph")
+    h(my_button)
+    h.p("another paragraph")
+    with h.table(style=dict(border="1px solid red")):
+        with h.tr():
+            h.th("Column 1")
+            h.th("Column 2")
+        with h.tr():
+            h.td("Value 1")
+            h.td("Value 2")
 
 w = RootWidget(h.root)
 w
