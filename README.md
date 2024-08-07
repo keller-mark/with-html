@@ -34,8 +34,9 @@ w
 ## Development
 
 ```sh
-conda env create -f environment.yml
-conda activate with-html-env
+conda create -n with-html python=3.12
+conda activate with-html
+pip install -e ".[dev]"
 ```
 
 ```sh

@@ -23,7 +23,8 @@ classifiers = [
   'Programming Language :: Python :: 3.12',
 ]
 dependencies = [
-  'anywidget'
+  'anywidget==0.9.13'
+  # esbuild-py?
 ]
 
 [project.optional-dependencies]
