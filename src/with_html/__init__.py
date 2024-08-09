@@ -38,7 +38,7 @@ class FunctionComponent:
         return isinstance(self.value, str)
     
     def value_is_func(self):
-        if not isinstance(self.value, str) and not isinstance(self.value, list) and self.value is not None:
+        if not isinstance(self.value, str) and not isinstance(self.value, list) and self.value is not None and not isinstance(self.value, anywidget.AnyWidget):
             return True
         return False
 
@@ -54,9 +54,11 @@ class FunctionComponent:
     
     def to_dict(self):
         return {
-            "tag": self.value if not self.value_is_func() else None,
+            "tag": self.value if not self.value_is_func() and not isinstance(self.value, anywidget.AnyWidget) else None,
             "text_content": self.text_content,
             "props": self.props,
+            "model_id": self.value.model_id if isinstance(self.value, anywidget.AnyWidget) else None,
+
             # TODO: convert style keys to camelCase if present?
             # TODO: convert class_name to className?
             # TODO: convert callbacks to anywidget.experimental.invoke command references?
@@ -150,8 +152,51 @@ class RootWidget(anywidget.AnyWidget):
             const hasChildren = Array.isArray(children) && children.length > 0;
             const hasText = value?.text_content?.length === 1;
 
+            const elRef = React.useRef();
+
+            React.useEffect(() => {
+                if(node && value?.model_id) {
+                    async function renderWidget() {
+                        // Create a dom node to provide as the el.
+                        // Get the widget's model
+                        const model = await ctx.model.widget_manager.get_model(value.model_id);
+                        console.log(model);
+                        const _esm = model.get("_esm");
+                        const _css = model.get("_css");
+
+                        const url = URL.createObjectURL(new Blob([_esm], { type: "text/javascript" }));
+                        const mod = await import(url);
+                        URL.revokeObjectURL(url);
+                        const widget = typeof mod.default === "function" ? await mod.default() : mod.default;
+
+                        const subInvoke = async () => { 
+                            // TODO: call the global invoke method with an extra scoping key
+                            // to enable de-multiplexing on the python side.
+                        };
+                        const subCtx = { model, el: elRef.current, experimental: { invoke: subInvoke } };
+
+                        // TODO: use shadow DOM to insert CSS? or just use react to insert into a <style> tag?
+                        // However React-inserted styles seem to not have an effect on the DOM nodes
+                        // that get inserted into the provided `el` using vanilla JS in the render() function.
+                        // Another option could be to require the widget to provide a react component (instead of a render function).
+                        
+                        const cleanup = await widget.render(subCtx);
+                        // TODO: use the cleanup in the effect cleanup
+                    }
+                    renderWidget();
+                }
+                // TODO: return an effect cleanup function.
+            }, [elRef]);
 
             if(node) {
+                if(value?.model_id) {
+                    return e(
+                        "div",
+                        { ref: elRef },
+                        // TODO: is there a use case for children here?
+                    );
+                }
+
                 return e(
                     value?.tag ?? React.Fragment,
                     value?.props ?? {},
